@@ -2,8 +2,11 @@
 ## date: july 13
 
 # initionial setting 
-
+setwd("~/sbr2018")
 A <- as.numeric(commandArgs(TRUE))
+save_stan <- paste0("stan_data/exe1/stan",A,".rds")
+save_output <- paste0("rdsoutput/exe1/output",A,".rds")
+
 #A <- 1
 set.seed(A)
 num_chain <- 4
@@ -41,7 +44,7 @@ Y <- Theta + error
 stan_data <- list(N = N, Y = Y, num_cov = num_cov, x = x_mat,
                   true_b = true_b
                   , seed = A)
-saveRDS(stan_data, file = paste0("exercise1/stan_data",A,".rds"))
+saveRDS(stan_data, file = save_stan)
 
 library(rstan)
 options(mc.cores = parallel::detectCores())
@@ -53,7 +56,7 @@ fit<- rstan::stan(file= "mod/exe1_mod.stan",data=stan_data,chains = num_chain,
                   control=list(adapt_delta=0.99, max_treedepth=15))
 
 #make sure to change the file name to save.
-saveRDS(fit,file = paste0("exercise1/rdsoutput",A,".rds"))
+saveRDS(fit,file = save_output)
 
 
 
