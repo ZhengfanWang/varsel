@@ -22,8 +22,6 @@ niter <- 4000
 ref1ex <- get_output(simu)
 
 
-
-
 prob <- cal_prob(ref1ex,dim(ref1ex$lambda)[2])
 prob
 prob2 <- cal_prob_lam_tau(ref1ex,dim(ref1ex$lambda)[2])

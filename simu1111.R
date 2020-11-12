@@ -11,6 +11,8 @@ K <- 50 # number of covariates
 N <- 1000 # number of obs
 #save.to <- "ref20201111.rds"
 
+
+
 ### Truth
 alpha <- 3 # intercept
 sigma <- 1 #real sigma
@@ -26,7 +28,7 @@ for(i in 0:9){
   R[start:end,start:end] <- block_mat
 }
 
-
+for(run in 1:30){
 x <- MASS::mvrnorm(N,mu = rep(0,K), Sigma = R)
 error <- rnorm(N,0,sigma)  
 
@@ -39,4 +41,6 @@ fit<- rstan::stan(file= "mod/ref_mod.stan",data=stan.data,chains = 4,
                   control=list(adapt_delta=0.95, max_treedepth=10))
 
 #make sure to change the file name to save.
+save.to <- paste0("rdsoutput/set1111_",run,".rds")
 saveRDS(fit,file = paste0(save.to))
+}
