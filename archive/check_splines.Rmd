@@ -1,0 +1,93 @@
+---
+title: "Check splines setting"
+author: "Zhengfan Wang"
+date: "5/14/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+$$\delta_c(t) = \sum_{k=1}^K b_k(t)\alpha_{k,c}$$
+Where $b_k(x)$ is the $k$th B-spline evaluated at x, $\alpha_{k,c}$ refers to the $k$th spline coefficient of country $c$.
+
+Implementation of first order differences(random wald on $\alpha_k$):
+
+
+$$\alpha_{k,c} \sim N(\alpha_{k-1,c},\sigma_\delta^2)$$
+
+Impose smoothness in $\mu(x)$ by penalizing differences in adjacent spline coefficients. 
+
+$$\Delta \alpha_{k,c}=\alpha_{k,c} - \alpha_{k-1,c} \sim N(0,\sigma_\delta^2)$$
+Vector $\delta =(\Delta\alpha_2,\Delta\alpha_3,...,\Delta\alpha_K)$ of length $H=K-1$
+
+Main idea of the alternative implementation is to rewrite each $\alpha_{k,c}$ as sum of intercept $\gamma_c$ and a combination of 1st order differences.
+
+$$\alpha_{k,c}=\gamma_c+[\Delta^t(\Delta\Delta^t)^{-1}]_k \delta$$
+
+In the model setting, we estimate $\gamma_c$ and $\sigma_\delta^2$. When the two parameter converge, $\gamma_c$ converge to the average level of country $c$, and 
+
+$$\sum_{k=1}^K B[\Delta^t(\Delta\Delta^t)^{-1}]_k \delta \approx 0$$
+since $\delta_h \sim N(0,\sigma_\delta^2)$, which is symmetric around 0, the $\delta_{c,t}$s tend to be symmetric around $\gamma_c$. But it is intuitive idea. It is hard to prove it by mathematics. Try to show it by posterior samples. Calculate  $\sum_{k=1}^K[\Delta^t(\Delta\Delta^t)^{-1}]_k \delta$ for each countries and posterior samples, and plot the density.
+
+```{r echo=FALSE}
+GetSplines <- function(
+  x.i,
+  x0 = NULL,
+  I = 2.5,
+  degree
+) {
+  if (is.null(x0)) {
+    x0 <- max(x.i)-0.5*I
+  }
+  # get knots, given that one knot needs to be in year0
+  knots <- seq(x0-1000*I, x0+1000*I, I)
+  while (min(x.i) < knots[1]) knots <- c(seq(knots[1]-1000*I, knots[1]-I,I), knots)
+  while (max(x.i) > knots[length(knots)]) knots <- c(knots, seq(knots[length(knots)]+I,
+                                                                knots[length(knots)]+1000*I, I))
+  Btemp.ik <- bs(x.i, knots = knots[-c(1, length(knots))],  degree = degree,
+                 Boundary.knots = knots[c(1, length(knots))])
+  indicesofcolswithoutzeroes <- which(apply(Btemp.ik, 2, sum) > 0)
+  # only remove columns with zeroes at start and end
+  startnonzerocol <- indicesofcolswithoutzeroes[1]
+  endnonzerocol <- indicesofcolswithoutzeroes[length(indicesofcolswithoutzeroes)]
+  B.ik <- Btemp.ik[,startnonzerocol:endnonzerocol]
+  colnames(B.ik) <- paste0("spline", seq(1, dim(B.ik)[2]))
+  knots.k <- knots[startnonzerocol:endnonzerocol]
+  names(knots.k) <- paste0("spline", seq(1, dim(B.ik)[2]))
+  ##value<< List of B-splines containing:
+  return(list(B.ik = B.ik, ##<< Matrix, each row is one observation, each column is one B-spline.
+              knots.k = knots.k ##<< Vector of knots.
+  ))
+}
+
+```
+
+```{r}
+library(splines)
+nyears <- 21
+x.t <- 1:nyears
+sp <- GetSplines(x.t, I = 1, degree = 2)
+K <- length(sp$knots.k)
+#num of knots
+K
+B.tk <- sp$B.ik
+Delta.hk <- diff(diag(K), diff = 1)
+Delta1comb.kh <- t(Delta.hk)%*%solve(Delta.hk%*%t(Delta.hk))
+#Z matrix
+Z1.tk <-B.tk%*%Delta1comb.kh
+#load posterior samples
+fit <- readRDS("E:/doc/research/birth rate/sbr_zf/rdsoutput/regHS2level_longiter_nval_res.rds")
+fit.chain <- rstan::extract(fit)
+num_of_iter <- 5000
+mat <- matrix(NA,nrow=num_of_iter,ncol=195)
+for(i in 1:num_of_iter){
+  for(c in 1:195){
+mat[i,c] <- sum(Z1.tk %*% fit.chain$delta_hc[i,,c])
+  }}
+
+mean(mat)
+plot(density(mat))
+```
