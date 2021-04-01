@@ -4,8 +4,8 @@ N <- 2000
 num_country <- 150
 num_region <- 6
 num_country_in_region <- rep(num_country/num_region,num_region)
-beta <- c(rep(5,5),rep(0,10))
-num_cov <- length(beta)
+num_cov <- 20
+beta <- c(rep(5,10),rep(0,10))
 yearLength <- 15
 num_source <- 3
 source_sd <- c(0.1,0.2,0.3)
@@ -96,8 +96,7 @@ datatype3_i <- as.numeric(getj_i ==3)
 stan_data <- list(N = N, numcov = num_cov, numcountry = num_country, numregion = num_region, numsource = num_source,
                   yearLength = yearLength, estyears = 1:yearLength, Y = y_i, getc_i = getc_i, getr_c = getr_c, gett_i = gett_i,
                   covar_array = covar_array, H = splines.data$H, Z_th = splines.data$Z.tk, datatype1_i = datatype1_i, 
-                  datatype2_i=datatype2_i,datatype3_i=datatype3_i,
-                  truebeta = beta)
+                  datatype2_i=datatype2_i,datatype3_i=datatype3_i)
 
 stan_data$getitrain_k <- seq(1, N)
 stan_data$ntrain <- length(stan_data$getitrain_k)
