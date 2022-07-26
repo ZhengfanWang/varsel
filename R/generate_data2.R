@@ -1,38 +1,33 @@
-generate_data <- function(){
+generate_data2 <- function(){
+
+
+getr_c <- countryRegionList$sdg
+
+cache <- countryRegionList %>% group_by(sdg) %>% summarise(n=n())
+num_country_in_region <- cache$n
 
 N <- 2000
-num_country <- 150
-num_region <- 6
-num_country_in_region <- rep(num_country/num_region,num_region)
-beta <- c(rep(5,5),rep(0,10),rep(0,30))
-num_cov <- length(beta)
-yearLength <- 15
+num_country <- dim(covar_array)[2]
+num_cov <- dim(covar_array)[1]
+num_region <- max(getr_c)
+
+# beta <- c( 0.4, -0.2,  0.2, -0.15, 0.15,
+#           0.08, 0.06, 0.04,  0.02,    0,
+#              0,    0,    0,     0,    0,
+#              0)
+
+beta <- c( 5, 5, 5, 5, 5,
+           0, 0, 0, 0, 0,
+           0, 0, 0, 0, 0,
+           0)
+
+yearLength <- length(estyears)
 num_source <- 3
 source_sd <- c(0.1,0.2,0.3)
-rho <- 0.5 #correlation of covariates if does exist
 
 
-###Covariates  PART: ignore the truth that the covariates in one country should be correlated.
-corr <- T
-covar_array <- array(NA,dim = c(num_cov,num_country,yearLength))
-if(corr == F){
- covar_mat <- MASS::mvrnorm(num_country*yearLength,mu = rep(0,num_cov), Sigma = diag(1,nrow=num_cov))
- }else{
-   rho_vec <- rep(rho,25)
-   block_mat <- matrix(rho_vec,nrow = 5, ncol = 5)
-   R <- matrix(0,nrow = num_cov, ncol =num_cov)
-   for(i in 0:(num_cov/5-1)){ #five covariates in one group
-     start <- i*5+1
-     end <- i*5+5
-     R[start:end,start:end] <- block_mat
-   }
-   diag(R) <- 1
-   covar_mat <- MASS::mvrnorm(num_country*yearLength,mu = rep(0,num_cov), Sigma = R)
- }
 
-for(i in 1:num_cov){covar_array[i,,] <- covar_mat[,i]} 
-#dim(covar_array)
-#summary(covar_array)
+
 cov_ct <- matrix(NA,ncol = yearLength, nrow = num_country)
 for(c in 1:num_country){
    for(t in 1:yearLength){
@@ -44,11 +39,10 @@ global_mean <- 2.3
 global_sd <- 0.1
 regional_sd <- 0.2
 regional_mean <- rnorm(num_region,global_mean,global_sd)
-country_mean <- list()
-for(i in 1:num_region){
-country_mean[[i]] <- rnorm(num_country_in_region[i],regional_mean[i],regional_sd)}
-country_mean <- unlist(country_mean)
-getr_c <- rep(c(1:6),num_country_in_region)
+country_mean <- rep(NA, length = num_country)
+for(c in 1:num_country){
+country_mean[c] <- rnorm(1,regional_mean[getr_c[c]],regional_sd)}
+
 
 ###Smoothing PART
 tau_delta <- 0.05
